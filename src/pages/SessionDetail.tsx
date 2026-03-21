@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ArrowLeft, Plus, Trash2, CheckCircle, Circle, Send } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -179,6 +180,7 @@ export function SessionDetail() {
             <Button
               onClick={async () => {
                 await updateSession.mutateAsync({ id: session.id, recap_sent: true })
+                toast.success(`Recap sent to ${session.client?.full_name}`)
               }}
               className="gap-2"
             >

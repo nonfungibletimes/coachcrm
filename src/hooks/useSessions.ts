@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { Session } from '@/types'
 
@@ -47,7 +48,11 @@ export function useCreateSession() {
       if (error) throw error
       return data
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sessions'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sessions'] })
+      toast.success('Session created')
+    },
+    onError: () => toast.error('Failed to create session'),
   })
 }
 
@@ -64,6 +69,10 @@ export function useUpdateSession() {
       if (error) throw error
       return data
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['sessions'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sessions'] })
+      toast.success('Session updated')
+    },
+    onError: () => toast.error('Failed to update session'),
   })
 }

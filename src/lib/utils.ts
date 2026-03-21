@@ -48,3 +48,5 @@ export function statusColor(status: string) {
   }
   return map[status] ?? 'bg-gray-100 text-gray-800'
 }
+
+export function nanoid(): string { return Math.random().toString(36).slice(2, 10) + Date.now().toString(36) }

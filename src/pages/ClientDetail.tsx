@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { ArrowLeft, Mail, Phone, Calendar, CheckCircle, Circle, Plus, Pencil, Save } from 'lucide-react'
+import { ArrowLeft, Mail, Phone, Calendar, CheckCircle, Circle, Plus, Pencil, Save, X } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +13,8 @@ import { useClient, useUpdateClient } from '@/hooks/useClients'
 import { useSessions } from '@/hooks/useSessions'
 import { formatDate, formatDateTime, getInitials, statusColor } from '@/lib/utils'
 import { Goal } from '@/types'
+import { Input } from '@/components/ui/input'
+import { nanoid } from '@/lib/utils'
 
 export function ClientDetail() {
   const { id } = useParams<{ id: string }>()
@@ -21,6 +23,7 @@ export function ClientDetail() {
   const updateClient = useUpdateClient()
   const [editingNotes, setEditingNotes] = useState(false)
   const [notes, setNotes] = useState('')
+  const [newGoal, setNewGoal] = useState('')
 
   if (isLoading) {
     return (
@@ -42,6 +45,24 @@ export function ClientDetail() {
   const handleSaveNotes = async () => {
     await updateClient.mutateAsync({ id: client.id, notes })
     setEditingNotes(false)
+  }
+
+  const handleAddGoal = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newGoal.trim()) return
+    const updated = [...goals, { id: nanoid(), text: newGoal.trim(), completed: false }]
+    await updateClient.mutateAsync({ id: client.id, goals: updated })
+    setNewGoal('')
+  }
+
+  const handleToggleGoal = async (goalId: string) => {
+    const updated = goals.map(g => g.id === goalId ? { ...g, completed: !g.completed } : g)
+    await updateClient.mutateAsync({ id: client.id, goals: updated })
+  }
+
+  const handleDeleteGoal = async (goalId: string) => {
+    const updated = goals.filter(g => g.id !== goalId)
+    await updateClient.mutateAsync({ id: client.id, goals: updated })
   }
 
   const handleStartEditNotes = () => {
@@ -120,24 +141,40 @@ export function ClientDetail() {
           </div>
 
           {/* Goals */}
-          {goals.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Goals Progress</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Progress value={goals.length > 0 ? (completedGoals.length / goals.length) * 100 : 0} className="h-2" />
-                {goals.map(goal => (
-                  <div key={goal.id} className="flex items-start gap-2 text-sm">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Goals</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {goals.length > 0 && (
+                <Progress value={(completedGoals.length / goals.length) * 100} className="h-2" />
+              )}
+              {goals.map(goal => (
+                <div key={goal.id} className="flex items-start gap-2 text-sm group">
+                  <button onClick={() => handleToggleGoal(goal.id)} className="mt-0.5 shrink-0">
                     {goal.completed
-                      ? <CheckCircle className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                      : <Circle className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />}
-                    <span className={goal.completed ? 'line-through text-muted-foreground' : ''}>{goal.text}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+                      ? <CheckCircle className="w-4 h-4 text-primary" />
+                      : <Circle className="w-4 h-4 text-muted-foreground" />}
+                  </button>
+                  <span className={`flex-1 ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>{goal.text}</span>
+                  <button onClick={() => handleDeleteGoal(goal.id)} className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity shrink-0">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ))}
+              <form onSubmit={handleAddGoal} className="flex gap-2 pt-1">
+                <Input
+                  value={newGoal}
+                  onChange={e => setNewGoal(e.target.value)}
+                  placeholder="Add a goal..."
+                  className="h-8 text-sm"
+                />
+                <Button type="submit" size="sm" variant="outline" disabled={!newGoal.trim()}>
+                  <Plus className="w-3.5 h-3.5" />
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       </div>
 

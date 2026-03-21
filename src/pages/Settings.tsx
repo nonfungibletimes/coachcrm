@@ -6,18 +6,23 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { supabase } from '@/lib/supabase'
+import { toast } from 'sonner'
 
 export function Settings() {
   const [profile, setProfile] = useState({ full_name: '', coaching_niche: '', email: '' })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [plan, setPlan] = useState('free')
 
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       const { data } = await supabase.from('coaches').select('*').eq('id', user.id).single()
-      if (data) setProfile({ full_name: data.full_name, coaching_niche: data.coaching_niche ?? '', email: data.email })
+      if (data) {
+        setProfile({ full_name: data.full_name, coaching_niche: data.coaching_niche ?? '', email: data.email })
+        setPlan(data.plan ?? 'free')
+      }
     }
     load()
   }, [])
@@ -34,7 +39,26 @@ export function Settings() {
     }
     setSaving(false)
     setSaved(true)
+    toast.success('Settings saved')
     setTimeout(() => setSaved(false), 2000)
+  }
+
+  const handleManageBilling = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-customer-portal`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+      const { url } = await res.json()
+      if (url) window.open(url, '_blank')
+      else toast.error('No billing portal URL returned')
+    } catch {
+      toast.error('Could not open billing portal')
+    }
   }
 
   return (
@@ -88,10 +112,12 @@ export function Settings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-4 rounded-lg bg-muted">
-                <p className="font-medium">Free Trial</p>
-                <p className="text-sm text-muted-foreground mt-1">14 days remaining in your free trial.</p>
+                <p className="font-medium capitalize">{plan === 'free' ? 'Free Trial' : `${plan} Plan`}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {plan === 'free' ? 'Upgrade to unlock all features.' : 'Your subscription is active.'}
+                </p>
               </div>
-              <Button variant="outline">
+              <Button variant="outline" onClick={handleManageBilling}>
                 <CreditCard className="w-4 h-4 mr-2" />
                 Manage Billing via Stripe
               </Button>

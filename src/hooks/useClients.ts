@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { Client } from '@/types'
 
@@ -45,7 +46,11 @@ export function useCreateClient() {
       if (error) throw error
       return data
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] })
+      toast.success('Client created')
+    },
+    onError: () => toast.error('Failed to create client'),
   })
 }
 
@@ -65,7 +70,9 @@ export function useUpdateClient() {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['clients'] })
       queryClient.invalidateQueries({ queryKey: ['clients', id] })
+      toast.success('Client updated')
     },
+    onError: () => toast.error('Failed to update client'),
   })
 }
 
@@ -76,6 +83,10 @@ export function useDeleteClient() {
       const { error } = await supabase.from('clients').delete().eq('id', id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] })
+      toast.success('Client deleted')
+    },
+    onError: () => toast.error('Failed to delete client'),
   })
 }
