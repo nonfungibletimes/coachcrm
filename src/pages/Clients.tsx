@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, Plus, Users, Mail, Phone } from 'lucide-react'
+import { Search, Plus, Users, Mail, Phone, Upload, Download } from 'lucide-react'
+import { ClientImportDialog } from '@/components/ClientImportDialog'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -73,6 +74,23 @@ export function Clients() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [showAdd, setShowAdd] = useState(false)
+  const [showImport, setShowImport] = useState(false)
+
+  const exportCSV = () => {
+    const headers = ['full_name', 'email', 'phone', 'status', 'package', 'started_at', 'notes']
+    const rows = (clients ?? []).map(c => [
+      c.full_name, c.email || '', c.phone || '', c.status, c.package || '',
+      c.started_at || '', (c.notes || '').replace(/"/g, '""'),
+    ].map(v => `"${v}"`).join(','))
+    const csv = [headers.join(','), ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `clients-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
 
   const filtered = (clients ?? []).filter(c => {
     const matchSearch = c.full_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -88,9 +106,17 @@ export function Clients() {
           <h1 className="text-3xl font-bold">Clients</h1>
           <p className="text-muted-foreground mt-1">{clients?.length ?? 0} total clients</p>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="gap-2">
-          <Plus className="w-4 h-4" /> Add Client
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={exportCSV} className="gap-2">
+            <Download className="w-4 h-4" /> Export CSV
+          </Button>
+          <Button variant="outline" onClick={() => setShowImport(true)} className="gap-2">
+            <Upload className="w-4 h-4" /> Import CSV
+          </Button>
+          <Button onClick={() => setShowAdd(true)} className="gap-2">
+            <Plus className="w-4 h-4" /> Add Client
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-3">
@@ -171,6 +197,7 @@ export function Clients() {
       )}
 
       <AddClientDialog open={showAdd} onClose={() => setShowAdd(false)} />
+      <ClientImportDialog open={showImport} onClose={() => setShowImport(false)} />
     </div>
   )
 }

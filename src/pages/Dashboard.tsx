@@ -7,11 +7,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { useClients } from '@/hooks/useClients'
 import { useSessions } from '@/hooks/useSessions'
+import { useCheckIns } from '@/hooks/useCheckIns'
 import { formatDateTime, getInitials, statusColor } from '@/lib/utils'
 
 export function Dashboard() {
   const { data: clients, isLoading: clientsLoading } = useClients()
   const { data: sessions, isLoading: sessionsLoading } = useSessions()
+  const { data: checkIns } = useCheckIns()
 
   const activeClients = clients?.filter(c => c.status === 'active') ?? []
   const upcomingSessions = sessions?.filter(s => 
@@ -29,7 +31,7 @@ export function Dashboard() {
     { label: 'Active Clients', value: activeClients.length, icon: Users, href: '/clients' },
     { label: 'Sessions This Week', value: thisWeekSessions.length, icon: Calendar, href: '/sessions' },
     { label: 'Upcoming Sessions', value: upcomingSessions.length, icon: Clock, href: '/sessions' },
-    { label: 'Check-ins Pending', value: 0, icon: Bell, href: '/check-ins' },
+    { label: 'Check-ins Pending', value: (checkIns ?? []).filter(c => c.status === 'pending').length, icon: Bell, href: '/check-ins' },
   ]
 
   return (

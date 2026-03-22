@@ -1,128 +1,122 @@
-# CoachCRM
+# CoachCRM ⚡
 
-A lightweight CRM built specifically for business coaches. Manage clients, track sessions, automate check-ins, and share beautiful progress reports.
+> The CRM Built for Coaches
 
-## Tech Stack
+CoachCRM is a focused, modern CRM designed specifically for coaching professionals. Manage your clients, schedule sessions, send check-ins, and track your practice — all in one beautiful app.
 
-- **Frontend:** React + TypeScript + Vite + Tailwind CSS
-- **Backend:** Supabase (auth, database, RLS)
-- **Styling:** Custom Shadcn-style components with Radix UI primitives
-- **State:** TanStack Query
-- **Routing:** React Router v6
+---
 
 ## Features
 
-- 🎯 **Landing page** — Hero, features, pricing ($29/$59/$99), testimonials
-- 🔐 **Auth** — Email/password + Google OAuth via Supabase
-- 📊 **Dashboard** — Today's sessions, stats, active clients
-- 👥 **Clients** — Full CRUD, search/filter, status management
-- 📅 **Sessions** — Schedule, notes, wins, blockers, homework
-- ✅ **Homework tracker** — Per-session tasks with completion tracking
-- 📈 **Progress reports** — Shareable client progress page
-- 🔔 **Check-ins** — Client check-in management
-- ⚙️ **Settings** — Profile, billing, email templates
-- 🌙 **Dark mode** — Toggle in sidebar, persisted to localStorage
-- 📱 **Responsive** — Works great on mobile
+- **Client Management** — Track clients with status, package, contact info, goals, and notes
+- **Session Scheduling** — Schedule, manage, and recap coaching sessions
+- **Calendar Week View** — Visual weekly calendar for sessions with day/time cards
+- **Check-ins** — Send and track client check-ins between sessions
+- **Progress Reports** — Generate client progress reports
+- **CSV Import/Export** — Bulk import clients from CSV; export your client list anytime
+- **Email Templates** — Customize Welcome, Session Recap, and Check-in Reminder emails
+- **Global Search (Cmd+K)** — Instantly find clients and sessions from anywhere in the app
+- **Dashboard** — At-a-glance stats: active clients, upcoming sessions, pending check-ins
+- **Dark/Light Mode** — Full theme support
 
-## Quick Start
+---
 
-### 1. Clone & Install
+## Tech Stack
+
+- **Frontend:** React 18 + TypeScript + Vite
+- **Styling:** Tailwind CSS + shadcn/ui
+- **Backend:** Supabase (PostgreSQL + Auth + Edge Functions)
+- **State:** TanStack Query
+- **Routing:** React Router v6
+- **Notifications:** Sonner (toasts)
+- **Icons:** Lucide React
+- **CSV Parsing:** Papa Parse
+
+---
+
+## Prerequisites
+
+- Node 18+
+- A [Supabase](https://supabase.com) account (free tier works)
+
+---
+
+## Setup
+
+### 1. Clone the repo
 
 ```bash
-cd apps/coachcrm
+git clone <your-repo-url>
+cd coachcrm
+```
+
+### 2. Install dependencies
+
+```bash
 npm install
 ```
 
-### 2. Set up Supabase
+### 3. Set up environment variables
 
-1. Create a project at [supabase.com](https://supabase.com)
-2. Go to **SQL Editor** and run `supabase/migrations/001_initial.sql`
-3. Enable Google OAuth in **Authentication → Providers** (optional)
+Create a `.env.local` file in the project root:
 
-### 3. Configure Environment
-
-```bash
-cp .env.example .env
+```env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-Fill in your Supabase URL and anon key from **Project Settings → API**.
+Find these in your Supabase project: **Settings → API**.
 
-### 4. Run
+### 4. Run the database migration
+
+In your Supabase project's **SQL Editor**, run the migration from:
+
+```
+supabase/migrations/
+```
+
+This creates the required tables: `coaches`, `clients`, `sessions`, `check_ins`.
+
+### 5. Start the dev server
 
 ```bash
 npm run dev
 ```
 
-Visit `http://localhost:5173`
+Open [http://localhost:5173](http://localhost:5173) to see the app.
 
-## Deployment (Vercel)
+---
 
-1. Push to GitHub
-2. Import repo in Vercel
-3. Add environment variables:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-4. Deploy — that's it.
+## Environment Variables
 
-## Database Schema
+| Variable | Description |
+|----------|-------------|
+| `VITE_SUPABASE_URL` | Your Supabase project URL |
+| `VITE_SUPABASE_ANON_KEY` | Your Supabase anonymous/public key |
 
-```
-coaches          — Extended user profiles
-clients          — Client records (goals, notes, status)
-sessions         — Session notes, wins, blockers, homework
-check_ins        — Between-session check-ins
-progress_snapshots — Weekly progress snapshots
-```
+---
 
-All tables use Row Level Security — every query is automatically scoped to the logged-in coach.
+## Deployment
 
-## Project Structure
+### Vercel (Recommended)
 
-```
-src/
-├── components/
-│   ├── ui/           Shadcn-style components (Button, Card, etc.)
-│   ├── layout/       Sidebar, AppLayout, MobileNav
-├── hooks/
-│   ├── useAuth.ts
-│   ├── useClients.ts
-│   ├── useSessions.ts
-│   └── useTheme.ts
-├── lib/
-│   ├── supabase.ts
-│   └── utils.ts
-├── pages/
-│   ├── Landing.tsx
-│   ├── Login.tsx / Signup.tsx
-│   ├── Dashboard.tsx
-│   ├── Clients.tsx / ClientDetail.tsx
-│   ├── Sessions.tsx / SessionDetail.tsx
-│   ├── CheckIns.tsx
-│   ├── ProgressReport.tsx
-│   └── Settings.tsx
-├── types/
-│   └── index.ts
-└── App.tsx           Router + auth guards
+1. Push your repo to GitHub
+2. Import the project in [Vercel](https://vercel.com)
+3. Add your environment variables in the Vercel dashboard
+4. Deploy — Vercel auto-detects Vite
+
+### Other platforms
+
+Build the app with:
+
+```bash
+npm run build
 ```
 
-## Pricing Tiers (to wire up with Stripe)
+The output is in the `dist/` folder — serve it as a static site on any platform (Netlify, Cloudflare Pages, etc.).
 
-| Plan    | Price | Clients |
-|---------|-------|---------|
-| Free    | $0    | 3       |
-| Starter | $29   | 10      |
-| Pro     | $59   | 30      |
-| Agency  | $99   | ∞       |
+---
 
-## Adding Stripe
+## License
 
-1. Create products/prices in Stripe Dashboard
-2. Add `VITE_STRIPE_PUBLISHABLE_KEY` to env
-3. Create Supabase Edge Function for checkout sessions
-4. Wire the "Manage Billing" button in Settings to Stripe Customer Portal
-
-## Adding Resend (Email)
-
-1. Create Supabase Edge Function: `send-recap`
-2. Use Resend SDK to send HTML emails
-3. Wire the "Send Recap" button in SessionDetail to call the function
+MIT

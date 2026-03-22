@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Calendar, Plus, Search } from 'lucide-react'
+import { Calendar, Plus, Search, List } from 'lucide-react'
+import { CalendarView } from '@/components/CalendarView'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -85,6 +86,7 @@ export function Sessions() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [showAdd, setShowAdd] = useState(false)
+  const [view, setView] = useState<'list' | 'calendar'>('list')
 
   const filtered = (sessions ?? []).filter(s => {
     const matchSearch = s.client?.full_name.toLowerCase().includes(search.toLowerCase())
@@ -102,9 +104,25 @@ export function Sessions() {
           <h1 className="text-3xl font-bold">Sessions</h1>
           <p className="text-muted-foreground mt-1">{sessions?.length ?? 0} total sessions</p>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="gap-2">
-          <Plus className="w-4 h-4" /> Schedule Session
-        </Button>
+        <div className="flex gap-2">
+          <div className="flex border rounded-lg overflow-hidden">
+            <button
+              onClick={() => setView('list')}
+              className={`px-3 py-1.5 text-sm flex items-center gap-1.5 transition-colors ${view === 'list' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+            >
+              <List className="w-3.5 h-3.5" /> List
+            </button>
+            <button
+              onClick={() => setView('calendar')}
+              className={`px-3 py-1.5 text-sm flex items-center gap-1.5 transition-colors ${view === 'calendar' ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'}`}
+            >
+              <Calendar className="w-3.5 h-3.5" /> Calendar
+            </button>
+          </div>
+          <Button onClick={() => setShowAdd(true)} className="gap-2">
+            <Plus className="w-4 h-4" /> Schedule Session
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-3">
@@ -124,16 +142,16 @@ export function Sessions() {
         </Select>
       </div>
 
-      {isLoading ? (
+      {view === 'list' && isLoading ? (
         <div className="space-y-3">{[1,2,3,4].map(i => <Skeleton key={i} className="h-20 w-full" />)}</div>
-      ) : filtered.length === 0 ? (
+      ) : view === 'list' && filtered.length === 0 ? (
         <div className="text-center py-16">
           <Calendar className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-semibold mb-2">No sessions found</h3>
           <p className="text-muted-foreground mb-6">Schedule your first session to get started.</p>
           <Button onClick={() => setShowAdd(true)} className="gap-2"><Plus className="w-4 h-4" /> Schedule Session</Button>
         </div>
-      ) : (
+      ) : view === 'list' ? (
         <div className="space-y-6">
           {upcoming.length > 0 && (
             <div>
@@ -156,6 +174,10 @@ export function Sessions() {
             </div>
           )}
         </div>
+      ) : null}
+
+      {view === 'calendar' && !isLoading && (
+        <CalendarView sessions={filtered} />
       )}
 
       <AddSessionDialog open={showAdd} onClose={() => setShowAdd(false)} />

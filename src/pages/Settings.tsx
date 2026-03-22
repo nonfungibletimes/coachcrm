@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Settings as SettingsIcon, User, CreditCard, Mail } from 'lucide-react'
+import { EmailTemplateEditor } from '@/components/EmailTemplateEditor'
+import { getEmailTemplates, EmailTemplate } from '@/hooks/useEmailTemplates'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,6 +15,8 @@ export function Settings() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [plan, setPlan] = useState('free')
+  const [templates, setTemplates] = useState<EmailTemplate[]>(() => getEmailTemplates())
+  const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -132,16 +136,31 @@ export function Settings() {
               <CardDescription>Customize the emails sent to your clients.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {['Welcome Email', 'Session Recap', 'Check-in Reminder'].map(template => (
-                <div key={template} className="flex items-center justify-between p-3 border rounded-lg">
-                  <span className="font-medium text-sm">{template}</span>
-                  <Button size="sm" variant="outline">Edit</Button>
+              {templates.map(template => (
+                <div key={template.id} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div>
+                    <span className="font-medium text-sm">{template.name}</span>
+                    <p className="text-xs text-muted-foreground truncate max-w-xs">{template.subject}</p>
+                  </div>
+                  <Button size="sm" variant="outline" onClick={() => setEditingTemplate(template)}>Edit</Button>
                 </div>
               ))}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {editingTemplate && (
+        <EmailTemplateEditor
+          template={editingTemplate}
+          open={!!editingTemplate}
+          onClose={() => setEditingTemplate(null)}
+          onSaved={updated => {
+            setTemplates(ts => ts.map(t => t.id === updated.id ? updated : t))
+            setEditingTemplate(null)
+          }}
+        />
+      )}
     </div>
   )
 }
