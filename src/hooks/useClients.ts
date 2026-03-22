@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { Client } from '@/types'
+import { sendWelcomeClientEmail } from '@/lib/resend'
 
 export function useClients() {
   return useQuery({

@@ -14,6 +14,11 @@ import { SessionDetail } from '@/pages/SessionDetail'
 import { CheckIns } from '@/pages/CheckIns'
 import { ProgressReport } from '@/pages/ProgressReport'
 import { Settings } from '@/pages/Settings'
+import { CheckoutPage } from '@/pages/CheckoutPage'
+import { CheckoutSuccessPage } from '@/pages/CheckoutSuccessPage'
+import { PublicProgressReport } from '@/pages/PublicProgressReport'
+import { ClientPortal } from '@/pages/ClientPortal'
+import { Analytics } from '@/pages/Analytics'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,15 +50,16 @@ export default function App() {
       <Toaster />
       <BrowserRouter>
         <Routes>
-          {/* Public */}
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
           <Route path="/signup" element={<PublicOnly><Signup /></PublicOnly>} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/checkout/success" element={<CheckoutSuccessPage />} />
 
-          {/* Progress report — semi-public */}
           <Route path="/clients/:id/progress" element={<ProgressReport />} />
+          <Route path="/report/:token" element={<PublicProgressReport />} />
+          <Route path="/portal/:token" element={<ClientPortal />} />
 
-          {/* App (protected) */}
           <Route element={<RequireAuth><AppLayout /></RequireAuth>}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/clients" element={<Clients />} />
@@ -61,6 +67,7 @@ export default function App() {
             <Route path="/sessions" element={<Sessions />} />
             <Route path="/sessions/:id" element={<SessionDetail />} />
             <Route path="/check-ins" element={<CheckIns />} />
+            <Route path="/analytics" element={<Analytics />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
 

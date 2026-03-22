@@ -11,7 +11,9 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useSession, useUpdateSession } from '@/hooks/useSessions'
-import { formatDateTime, statusColor } from '@/lib/utils'
+import { formatDateTime } from '@/lib/utils'
+import { sendSessionRecapEmail } from '@/lib/resend'
+import { supabase } from '@/lib/supabase'
 import { HomeworkItem } from '@/types'
 
 export function SessionDetail() {
@@ -179,8 +181,23 @@ export function SessionDetail() {
             </div>
             <Button
               onClick={async () => {
-                await updateSession.mutateAsync({ id: session.id, recap_sent: true })
-                toast.success(`Recap sent to ${session.client?.full_name}`)
+                try {
+                  if (!session.client?.email) throw new Error('Client has no email address')
+                  const { data: { user } } = await supabase.auth.getUser()
+                  await sendSessionRecapEmail({
+                    to: session.client.email,
+                    coachName: user?.user_metadata?.full_name || 'Your coach',
+                    clientName: session.client?.full_name || 'Client',
+                    sessionDate: formatDateTime(session.scheduled_at),
+                    wins: (form.wins as string) ?? session.wins ?? '',
+                    blocks: (form.blocks as string) ?? session.blocks ?? '',
+                    homework: (session.homework ?? []).map(h => h.task),
+                  })
+                  await updateSession.mutateAsync({ id: session.id, recap_sent: true })
+                  toast.success(`Recap sent to ${session.client?.full_name}`)
+                } catch (error: any) {
+                  toast.error(error.message || 'Failed to send recap')
+                }
               }}
               className="gap-2"
             >

@@ -1,13 +1,16 @@
 import { useParams } from 'react-router-dom'
-import { CheckCircle, Circle, Calendar, TrendingUp } from 'lucide-react'
+import { CheckCircle, Circle, Calendar, TrendingUp, Share2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Button } from '@/components/ui/button'
 import { useClient } from '@/hooks/useClients'
 import { useSessions } from '@/hooks/useSessions'
 import { formatDate, getInitials } from '@/lib/utils'
 import { Goal } from '@/types'
+import { supabase } from '@/lib/supabase'
+import { toast } from 'sonner'
 
 export function ProgressReport() {
   const { id } = useParams<{ id: string }>()
@@ -31,10 +34,24 @@ export function ProgressReport() {
   const doneGoals = goals.filter(g => g.completed)
   const goalRate = goals.length > 0 ? Math.round((doneGoals.length / goals.length) * 100) : 0
 
+  const createShareLink = async () => {
+    const token = crypto.randomUUID().replaceAll('-', '')
+    const { error } = await supabase.from('progress_report_shares').insert({ client_id: client.id, token })
+    if (error) {
+      toast.error('Failed to create link')
+      return
+    }
+    const link = `${window.location.origin}/report/${token}`
+    await navigator.clipboard.writeText(link)
+    toast.success('Share link copied to clipboard')
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-background p-4 md:p-8">
       <div className="max-w-2xl mx-auto space-y-6">
-        {/* Header */}
+        <div className="text-right">
+          <Button variant="outline" className="gap-2" onClick={createShareLink}><Share2 className="w-4 h-4" /> Share report</Button>
+        </div>
         <div className="text-center py-8">
           <Avatar className="h-20 w-20 mx-auto mb-4">
             <AvatarFallback className="text-2xl font-bold bg-primary text-primary-foreground">
@@ -48,32 +65,12 @@ export function ProgressReport() {
           )}
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
-          <Card className="text-center">
-            <CardContent className="p-4">
-              <Calendar className="w-6 h-6 mx-auto text-primary mb-2" />
-              <p className="text-2xl font-bold">{completed.length}</p>
-              <p className="text-xs text-muted-foreground">Sessions</p>
-            </CardContent>
-          </Card>
-          <Card className="text-center">
-            <CardContent className="p-4">
-              <CheckCircle className="w-6 h-6 mx-auto text-primary mb-2" />
-              <p className="text-2xl font-bold">{hwRate}%</p>
-              <p className="text-xs text-muted-foreground">Homework</p>
-            </CardContent>
-          </Card>
-          <Card className="text-center">
-            <CardContent className="p-4">
-              <TrendingUp className="w-6 h-6 mx-auto text-primary mb-2" />
-              <p className="text-2xl font-bold">{goalRate}%</p>
-              <p className="text-xs text-muted-foreground">Goals</p>
-            </CardContent>
-          </Card>
+          <Card className="text-center"><CardContent className="p-4"><Calendar className="w-6 h-6 mx-auto text-primary mb-2" /><p className="text-2xl font-bold">{completed.length}</p><p className="text-xs text-muted-foreground">Sessions</p></CardContent></Card>
+          <Card className="text-center"><CardContent className="p-4"><CheckCircle className="w-6 h-6 mx-auto text-primary mb-2" /><p className="text-2xl font-bold">{hwRate}%</p><p className="text-xs text-muted-foreground">Homework</p></CardContent></Card>
+          <Card className="text-center"><CardContent className="p-4"><TrendingUp className="w-6 h-6 mx-auto text-primary mb-2" /><p className="text-2xl font-bold">{goalRate}%</p><p className="text-xs text-muted-foreground">Goals</p></CardContent></Card>
         </div>
 
-        {/* Goals */}
         {goals.length > 0 && (
           <Card>
             <CardHeader><CardTitle>Goals Progress</CardTitle></CardHeader>
@@ -83,9 +80,7 @@ export function ProgressReport() {
               <div className="space-y-2">
                 {goals.map(goal => (
                   <div key={goal.id} className="flex items-start gap-3">
-                    {goal.completed
-                      ? <CheckCircle className="w-5 h-5 text-primary mt-0.5 shrink-0" />
-                      : <Circle className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />}
+                    {goal.completed ? <CheckCircle className="w-5 h-5 text-primary mt-0.5 shrink-0" /> : <Circle className="w-5 h-5 text-muted-foreground mt-0.5 shrink-0" />}
                     <span className={`text-sm ${goal.completed ? 'line-through text-muted-foreground' : ''}`}>{goal.text}</span>
                   </div>
                 ))}
@@ -94,7 +89,6 @@ export function ProgressReport() {
           </Card>
         )}
 
-        {/* Session Highlights */}
         {completed.length > 0 && (
           <Card>
             <CardHeader><CardTitle>Recent Session Highlights</CardTitle></CardHeader>
@@ -102,18 +96,14 @@ export function ProgressReport() {
               {completed.slice(0, 3).map(session => (
                 <div key={session.id} className="border-l-2 border-primary/30 pl-4">
                   <p className="text-sm font-medium">{formatDate(session.scheduled_at)}</p>
-                  {session.wins && (
-                    <p className="text-sm text-muted-foreground mt-1">🎉 {session.wins}</p>
-                  )}
+                  {session.wins && <p className="text-sm text-muted-foreground mt-1">🎉 {session.wins}</p>}
                 </div>
               ))}
             </CardContent>
           </Card>
         )}
 
-        <p className="text-center text-xs text-muted-foreground pb-8">
-          Generated by CoachCRM · {new Date().toLocaleDateString()}
-        </p>
+        <p className="text-center text-xs text-muted-foreground pb-8">Generated by CoachCRM · {new Date().toLocaleDateString()}</p>
       </div>
     </div>
   )

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Settings as SettingsIcon, User, CreditCard, Mail } from 'lucide-react'
+import { User, CreditCard, Mail } from 'lucide-react'
 import { EmailTemplateEditor } from '@/components/EmailTemplateEditor'
 import { getEmailTemplates, EmailTemplate } from '@/hooks/useEmailTemplates'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -9,14 +9,16 @@ import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { useSubscription, useUpdateSubscription } from '@/hooks/useSubscription'
 
 export function Settings() {
   const [profile, setProfile] = useState({ full_name: '', coaching_niche: '', email: '' })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
-  const [plan, setPlan] = useState('free')
   const [templates, setTemplates] = useState<EmailTemplate[]>(() => getEmailTemplates())
   const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null)
+  const { data: sub } = useSubscription()
+  const updateSub = useUpdateSubscription()
 
   useEffect(() => {
     const load = async () => {
@@ -25,7 +27,6 @@ export function Settings() {
       const { data } = await supabase.from('coaches').select('*').eq('id', user.id).single()
       if (data) {
         setProfile({ full_name: data.full_name, coaching_niche: data.coaching_niche ?? '', email: data.email })
-        setPlan(data.plan ?? 'free')
       }
     }
     load()
@@ -45,24 +46,6 @@ export function Settings() {
     setSaved(true)
     toast.success('Settings saved')
     setTimeout(() => setSaved(false), 2000)
-  }
-
-  const handleManageBilling = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession()
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-customer-portal`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session?.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      })
-      const { url } = await res.json()
-      if (url) window.open(url, '_blank')
-      else toast.error('No billing portal URL returned')
-    } catch {
-      toast.error('Could not open billing portal')
-    }
   }
 
   return (
@@ -87,22 +70,10 @@ export function Settings() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSave} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Full Name</Label>
-                  <Input value={profile.full_name} onChange={e => setProfile(p => ({ ...p, full_name: e.target.value }))} />
-                </div>
-                <div className="space-y-2">
-                  <Label>Email</Label>
-                  <Input value={profile.email} disabled className="opacity-60" />
-                  <p className="text-xs text-muted-foreground">Email cannot be changed here.</p>
-                </div>
-                <div className="space-y-2">
-                  <Label>Coaching Niche</Label>
-                  <Input placeholder="e.g. Executive, Life, Business..." value={profile.coaching_niche} onChange={e => setProfile(p => ({ ...p, coaching_niche: e.target.value }))} />
-                </div>
-                <Button type="submit" disabled={saving}>
-                  {saving ? 'Saving...' : saved ? '✓ Saved!' : 'Save Changes'}
-                </Button>
+                <div className="space-y-2"><Label>Full Name</Label><Input value={profile.full_name} onChange={e => setProfile(p => ({ ...p, full_name: e.target.value }))} /></div>
+                <div className="space-y-2"><Label>Email</Label><Input value={profile.email} disabled className="opacity-60" /></div>
+                <div className="space-y-2"><Label>Coaching Niche</Label><Input placeholder="e.g. Executive, Life, Business..." value={profile.coaching_niche} onChange={e => setProfile(p => ({ ...p, coaching_niche: e.target.value }))} /></div>
+                <Button type="submit" disabled={saving}>{saving ? 'Saving...' : saved ? '✓ Saved!' : 'Save Changes'}</Button>
               </form>
             </CardContent>
           </Card>
@@ -110,38 +81,30 @@ export function Settings() {
 
         <TabsContent value="billing" className="mt-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Billing</CardTitle>
-              <CardDescription>Manage your subscription and payment details.</CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle>Billing</CardTitle><CardDescription>Manage plan and subscription.</CardDescription></CardHeader>
             <CardContent className="space-y-4">
               <div className="p-4 rounded-lg bg-muted">
-                <p className="font-medium capitalize">{plan === 'free' ? 'Free Trial' : `${plan} Plan`}</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {plan === 'free' ? 'Upgrade to unlock all features.' : 'Your subscription is active.'}
-                </p>
+                <p className="font-medium capitalize">Current plan: {sub?.plan ?? 'free'}</p>
               </div>
-              <Button variant="outline" onClick={handleManageBilling}>
-                <CreditCard className="w-4 h-4 mr-2" />
-                Manage Billing via Stripe
-              </Button>
+              <div className="grid grid-cols-3 gap-2">
+                {(['starter', 'pro', 'agency'] as const).map(plan => (
+                  <Button key={plan} variant={sub?.plan === plan ? 'default' : 'outline'} onClick={() => updateSub.mutate(plan)}>
+                    {sub?.plan === plan ? 'Current' : `Switch to ${plan}`}
+                  </Button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">Use checkout flow for Stripe payment and then sync plan.</p>
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="emails" className="mt-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Email Templates</CardTitle>
-              <CardDescription>Customize the emails sent to your clients.</CardDescription>
-            </CardHeader>
+            <CardHeader><CardTitle>Email Templates</CardTitle><CardDescription>Customize the emails sent to your clients.</CardDescription></CardHeader>
             <CardContent className="space-y-4">
               {templates.map(template => (
                 <div key={template.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <span className="font-medium text-sm">{template.name}</span>
-                    <p className="text-xs text-muted-foreground truncate max-w-xs">{template.subject}</p>
-                  </div>
+                  <div><span className="font-medium text-sm">{template.name}</span><p className="text-xs text-muted-foreground truncate max-w-xs">{template.subject}</p></div>
                   <Button size="sm" variant="outline" onClick={() => setEditingTemplate(template)}>Edit</Button>
                 </div>
               ))}

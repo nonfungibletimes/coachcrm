@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Calendar, Plus, Search, List } from 'lucide-react'
 import { CalendarView } from '@/components/CalendarView'
@@ -13,17 +13,32 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Label } from '@/components/ui/label'
 import { useSessions, useCreateSession } from '@/hooks/useSessions'
 import { useClients } from '@/hooks/useClients'
+import { useSessionTemplates, useEnsureDefaultTemplates } from '@/hooks/useSessionTemplates'
 import { formatDateTime, getInitials, statusColor } from '@/lib/utils'
 import { Session } from '@/types'
 
 function AddSessionDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { data: clients } = useClients()
+  const { data: templates = [] } = useSessionTemplates()
+  const ensureDefaults = useEnsureDefaultTemplates()
   const createSession = useCreateSession()
+  const [selectedTemplateId, setSelectedTemplateId] = useState('')
   const [form, setForm] = useState({
     client_id: '', scheduled_at: '', duration_minutes: 60,
     template: 'accountability' as Session['template'], status: 'scheduled' as Session['status'],
   })
   const update = (k: string, v: string | number) => setForm(f => ({ ...f, [k]: v }))
+
+  useEffect(() => {
+    ensureDefaults.mutate()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    const selected = templates.find(t => t.id === selectedTemplateId)
+    if (!selected) return
+    setForm(f => ({ ...f, duration_minutes: selected.duration_minutes, template: selected.type === 'goal-review' || selected.type === 'weekly-checkin' ? 'strategy' : (selected.type as Session['template']) }))
+  }, [selectedTemplateId, templates])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,6 +65,17 @@ function AddSessionDialog({ open, onClose }: { open: boolean; onClose: () => voi
           <div className="space-y-2">
             <Label>Date & Time *</Label>
             <Input type="datetime-local" value={form.scheduled_at} onChange={e => update('scheduled_at', e.target.value)} required />
+          </div>
+          <div className="space-y-2">
+            <Label>Session Template Library</Label>
+            <Select value={selectedTemplateId} onValueChange={setSelectedTemplateId}>
+              <SelectTrigger><SelectValue placeholder="Choose reusable template (optional)" /></SelectTrigger>
+              <SelectContent>
+                {templates.map(t => (
+                  <SelectItem key={t.id} value={t.id}>{t.name} ({t.duration_minutes}m)</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

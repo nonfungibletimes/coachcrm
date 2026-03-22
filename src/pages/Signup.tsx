@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { OnboardingWizard } from '@/components/OnboardingWizard'
 
 type Step = 'account' | 'onboarding'
 
@@ -14,9 +15,7 @@ export function Signup() {
   const [step, setStep] = useState<Step>('account')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({
-    email: '', password: '', full_name: '', coaching_niche: '', client_count: '',
-  })
+  const [form, setForm] = useState({ email: '', password: '', full_name: '' })
 
   const update = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }))
 
@@ -34,8 +33,7 @@ export function Signup() {
     setStep('onboarding')
   }
 
-  const handleOnboarding = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleOnboardingComplete = async (values: { coaching_niche: string; first_client_name: string; first_session_at: string }) => {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
@@ -43,9 +41,32 @@ export function Signup() {
         id: user.id,
         full_name: form.full_name,
         email: form.email,
-        coaching_niche: form.coaching_niche,
+        coaching_niche: values.coaching_niche,
         onboarding_complete: true,
       })
+
+      let clientId: string | null = null
+      if (values.first_client_name) {
+        const { data: client } = await supabase
+          .from('clients')
+          .insert({ coach_id: user.id, full_name: values.first_client_name, status: 'active', goals: [] })
+          .select('id')
+          .single()
+        clientId = client?.id ?? null
+      }
+
+      if (clientId && values.first_session_at) {
+        await supabase.from('sessions').insert({
+          coach_id: user.id,
+          client_id: clientId,
+          scheduled_at: new Date(values.first_session_at).toISOString(),
+          duration_minutes: 60,
+          status: 'scheduled',
+          template: 'discovery',
+          homework: [],
+          recap_sent: false,
+        })
+      }
     }
     setLoading(false)
     navigate('/dashboard')
@@ -54,27 +75,7 @@ export function Signup() {
   if (step === 'onboarding') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Tell us about your practice</CardTitle>
-            <CardDescription>Help us personalize CoachCRM for you</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleOnboarding} className="space-y-4">
-              <div className="space-y-2">
-                <Label>What type of coaching do you do?</Label>
-                <Input placeholder="e.g. Executive, Life, Business, Health..." value={form.coaching_niche} onChange={e => update('coaching_niche', e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label>How many active clients do you have?</Label>
-                <Input type="number" placeholder="e.g. 12" value={form.client_count} onChange={e => update('client_count', e.target.value)} />
-              </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? 'Setting up...' : 'Go to dashboard →'}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+        <OnboardingWizard onComplete={handleOnboardingComplete} loading={loading} />
       </div>
     )
   }

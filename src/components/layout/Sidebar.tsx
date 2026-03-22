@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom'
 import {
-  LayoutDashboard, Users, Calendar, Bell, Settings, LogOut, Moon, Sun, Zap
+  LayoutDashboard, Users, Calendar, Bell, Settings, LogOut, Moon, Sun, Zap, ChartSpline
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
@@ -12,6 +12,7 @@ const navItems = [
   { to: '/clients', icon: Users, label: 'Clients' },
   { to: '/sessions', icon: Calendar, label: 'Sessions' },
   { to: '/check-ins', icon: Bell, label: 'Check-ins' },
+  { to: '/analytics', icon: ChartSpline, label: 'Analytics' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 

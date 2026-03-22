@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Bell, Plus, Send, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -13,6 +13,8 @@ import { useClients } from '@/hooks/useClients'
 import { toast } from 'sonner'
 import { CheckIn } from '@/types'
 import { format } from 'date-fns'
+import { sendCheckInReminderEmail } from '@/lib/resend'
+import { supabase } from '@/lib/supabase'
 
 const STATUS_COLORS: Record<string, 'default' | 'secondary' | 'outline'> = {
   pending: 'secondary',
@@ -20,13 +22,24 @@ const STATUS_COLORS: Record<string, 'default' | 'secondary' | 'outline'> = {
   responded: 'outline',
 }
 
-function CheckInCard({ checkIn }: { checkIn: CheckIn }) {
+function CheckInCard({ checkIn, coachName }: { checkIn: CheckIn; coachName: string }) {
   const updateCheckIn = useUpdateCheckIn()
   const deleteCheckIn = useDeleteCheckIn()
 
   const handleSend = async () => {
-    await updateCheckIn.mutateAsync({ id: checkIn.id, status: 'sent', sent_at: new Date().toISOString() })
-    toast.success(`Check-in sent to ${checkIn.client?.full_name}`)
+    try {
+      if (!checkIn.client?.email) throw new Error('Client has no email')
+      await sendCheckInReminderEmail({
+        to: checkIn.client.email,
+        coachName,
+        clientName: checkIn.client.full_name,
+        message: checkIn.message,
+      })
+      await updateCheckIn.mutateAsync({ id: checkIn.id, status: 'sent', sent_at: new Date().toISOString() })
+      toast.success(`Check-in sent to ${checkIn.client?.full_name}`)
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send check-in')
+    }
   }
 
   return (
@@ -72,13 +85,13 @@ function CheckInCard({ checkIn }: { checkIn: CheckIn }) {
   )
 }
 
-function Section({ title, items }: { title: string; items: CheckIn[] }) {
+function Section({ title, items, coachName }: { title: string; items: CheckIn[]; coachName: string }) {
   if (items.length === 0) return null
   return (
     <div className="space-y-3">
       <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">{title}</h2>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {items.map(ci => <CheckInCard key={ci.id} checkIn={ci} />)}
+        {items.map(ci => <CheckInCard key={ci.id} checkIn={ci} coachName={coachName} />)}
       </div>
     </div>
   )
@@ -90,6 +103,15 @@ export function CheckIns() {
   const createCheckIn = useCreateCheckIn()
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({ client_id: '', scheduled_at: '', message: '' })
+  const [coachName, setCoachName] = useState('Your coach')
+
+  useEffect(() => {
+    const load = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user?.user_metadata?.full_name) setCoachName(user.user_metadata.full_name)
+    }
+    load()
+  }, [])
 
   const pending = checkIns.filter(c => c.status === 'pending')
   const sent = checkIns.filter(c => c.status === 'sent')
@@ -135,9 +157,9 @@ export function CheckIns() {
         </div>
       ) : (
         <div className="space-y-8">
-          <Section title="Pending" items={pending} />
-          <Section title="Sent" items={sent} />
-          <Section title="Responded" items={responded} />
+          <Section title="Pending" items={pending} coachName={coachName} />
+          <Section title="Sent" items={sent} coachName={coachName} />
+          <Section title="Responded" items={responded} coachName={coachName} />
         </div>
       )}
 

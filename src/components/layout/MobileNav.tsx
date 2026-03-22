@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { LayoutDashboard, Users, Calendar, Bell, Settings, Menu, X, Zap, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, Calendar, Bell, Settings, Menu, X, Zap, LogOut, ChartSpline } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ const navItems = [
   { to: '/clients', icon: Users, label: 'Clients' },
   { to: '/sessions', icon: Calendar, label: 'Sessions' },
   { to: '/check-ins', icon: Bell, label: 'Check-ins' },
+  { to: '/analytics', icon: ChartSpline, label: 'Analytics' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 
